@@ -1,0 +1,106 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Threading;
+using System.Drawing;
+using System.Globalization;
+using System.Runtime.InteropServices.WindowsRuntime;
+
+namespace SpidermanGelap
+{
+    class Program
+    {
+        static Thread[] threads;
+
+
+        static void Main(string[] args)
+        {
+            Console.WriteLine("Process Splitting Starting...");
+            //Process of Splitting Image
+            Image image1;
+            image1 = new Bitmap(Image.FromFile(@"D:\Google Drive\UiTM Jasin (CS230)\Sem 5\CSC580 (Parallel Processing)\Lab 5 Spiderman\Spiderman.jpg"));
+
+            int rows = 5;//No of Rows as per Desire
+            int columns = 1;//No of columns as per Desire
+            var imgarray = new Image[rows, columns];//Create Image Array of Size Rows X Colums
+            var img = image1;//Get Image from anywhere, From File Or Using Dialogbox used previously
+            int height = img.Height;
+            int width = img.Width;//Get image Height & Width of Input Image
+            int one_img_h = height / rows;
+            int one_img_w = width / columns;//You need Rows x Columns, So get 1/rows Height, 1/columns width of original Image
+            for (int i = 0; i < rows; i++)
+            {
+                for (int j = 0; j < columns; j++)
+                {
+                    imgarray[i, j] = new Bitmap(one_img_w, one_img_h);//generating new bitmap
+                    var graphics = Graphics.FromImage(imgarray[i, j]);
+                    graphics.DrawImage(img, new Rectangle(0, 0, one_img_w, one_img_h), new Rectangle(j * one_img_w, i * one_img_h, one_img_w, one_img_h), GraphicsUnit.Pixel);//Generating Splitted Pieces of Image
+                    graphics.Dispose();
+                    ((Bitmap)imgarray[i, j]).Save(@"D:\Google Drive\UiTM Jasin (CS230)\Sem 5\CSC580 (Parallel Processing)\Lab 6 Spiderman\Spidey" + i + ".jpg");
+
+                    Console.WriteLine("Splitting image "+i);
+                }
+            }
+
+            Console.WriteLine("Process Splitting Ended...");
+            int noOfThreads = 5;
+            threads = new Thread[noOfThreads];
+
+            for (int i = 0; i < noOfThreads; i++)
+            {
+                Console.WriteLine("Create thread no "+i);
+                threads[i] = new Thread(new ParameterizedThreadStart(Run));
+                threads[i].Start(i);
+            }
+            Console.ReadKey();
+            Console.WriteLine("Process Combining Starting...");
+            //Process of Combining Image
+            //Images that gone through color changes will be combine back 
+
+            Bitmap temp = new Bitmap(5000, 5000);
+
+            Graphics graph1 = Graphics.FromImage((Image)temp);
+
+            int n = 0;
+            for (int i = 0; i < 5; i++)
+            {
+                graph1.DrawImage((Image)Image.FromFile(@"D:\Google Drive\UiTM Jasin (CS230)\Sem 5\CSC580 (Parallel Processing)\Lab 6 Spiderman\BlackSpidey" + i + ".jpg"), 0, n);
+                n += 1000;
+            }
+            graph1.Dispose();
+
+            temp.Save(@"D:\Google Drive\UiTM Jasin (CS230)\Sem 5\CSC580 (Parallel Processing)\Lab 6 Spiderman\combine1.jpg");
+            Console.WriteLine("Process Combining Ended...Yayyy :)");
+
+            Console.ReadKey();
+        }
+
+        static void Run(object id)
+        {
+
+            {
+                Bitmap spodey = new Bitmap(Image.FromFile(@"D:\Google Drive\UiTM Jasin (CS230)\Sem 5\CSC580 (Parallel Processing)\Lab 6 Spiderman\Spidey" + id + ".jpg"));
+
+                for (int rowpix = 0; rowpix < spodey.Width; rowpix++)
+                {
+                    for (int colpix = 0; colpix < spodey.Height; colpix++)
+                    {
+
+                        if ((spodey.GetPixel(rowpix, colpix).R - spodey.GetPixel(rowpix, colpix).G) > 40)
+
+                        {
+                            spodey.SetPixel(rowpix, colpix, Color.Black);
+
+                        }
+                    }
+                }
+
+                spodey.Save(@"D:\Google Drive\UiTM Jasin (CS230)\Sem 5\CSC580 (Parallel Processing)\Lab 6 Spiderman\BlackSpidey" + id + ".jpg");
+
+                Console.WriteLine("Done changing color of Image " + id);
+            }
+        }
+    }
+}
