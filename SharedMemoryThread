@@ -92,6 +92,10 @@ namespace SpidermanGelap
             temp.Save(Path.Combine(path, "combine1.jpg"), System.Drawing.Imaging.ImageFormat.Jpeg);
             Console.WriteLine("Process Combining Ended...Yayyy :)");
 
+            //Stopwatch End
+            stopwatch.Stop();
+            Console.WriteLine("Time elapsed: {0}", stopwatch.Elapsed);
+
             Console.ReadKey();
         }
 
