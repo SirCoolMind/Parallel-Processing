@@ -8,6 +8,7 @@ using System.Threading;
 using System.Drawing;
 using System.Globalization;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Diagnostics;
 
 namespace SpidermanGelap
 {
@@ -15,17 +16,23 @@ namespace SpidermanGelap
     {
         static Thread[] threads;
         static Barrier _barrier = new Barrier(participantCount: 0);
-        static String path = @"D:\Google Drive\UiTM Jasin (CS230)\Sem 5\CSC580 (Parallel Processing)\Lab 5 Spiderman"; //Extra feature, geng just change path here and put original picture there too
-
+        
+        //Extra feature, geng just change path here and put original picture there too
+        static String path = @"D:\Google Drive\UiTM Jasin (CS230)\Sem 5\CSC580 (Parallel Processing)\Lab 5 Spiderman"; 
         static void Main(string[] args)
-        {
-            String path = @"D:\Google Drive\UiTM Jasin (CS230)\Sem 5\CSC580 (Parallel Processing)\Lab 5 Spiderman"; //Extra feature, geng just change path here and put original picture there too
-            Console.WriteLine("Process Splitting Starting...");
+        {   
+            //Start Stopwatch
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
+
+
             //Process of Splitting Image
+            Console.WriteLine("Process Splitting Starting...");
             Image image1;
             image1 = new Bitmap(Image.FromFile(Path.Combine(path,"Spiderman.jpg")));
 
-            int rows = 7;//No of Rows as per Desire
+            int rows = 7;//Tukar nombor of process dekat sini. 
+
             int columns = 1;//No of columns as per Desire
             var imgarray = new Image[rows, columns];//Create Image Array of Size Rows X Colums
             var img = image1;//Get Image from anywhere, From File Or Using Dialogbox used previously
@@ -48,7 +55,8 @@ namespace SpidermanGelap
             }
 
             Console.WriteLine("Process Splitting Ended...");
-            
+            //Splitting habis
+
             //Creating threads to process color changing on splitted images
             int noOfThreads = rows;
             threads = new Thread[noOfThreads];
@@ -62,7 +70,9 @@ namespace SpidermanGelap
                 tasks[j] = Task.Factory.StartNew(() => Run(j)); //create thread
                 
             }
-            Task.WaitAll(tasks);
+            Task.WaitAll(tasks); //It will wait all of thread to finish first then baru sambung dekat bawah
+            
+            
             Console.WriteLine("Process Combining Starting...");
             //Process of Combining Image
             //Images that gone through color changes will be combine back 
@@ -75,7 +85,7 @@ namespace SpidermanGelap
             for (int i = 0; i < rows; i++)
             {
                 graph1.DrawImage((Image)Image.FromFile(Path.Combine(path, "BlackSpidey" + i + ".jpg")), 0, n);
-                n += 1000;
+                n += (5000/rows);
             }
             graph1.Dispose();
 
@@ -88,7 +98,7 @@ namespace SpidermanGelap
         static void Run(object id)
         {
 
-            {
+            {   //Process of changing color
                 Bitmap spodey = new Bitmap(Image.FromFile(Path.Combine(path, "Spidey" + id + ".jpg")));
 
                 for (int rowpix = 0; rowpix < spodey.Width; rowpix++)
