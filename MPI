@@ -1,0 +1,155 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.ComponentModel;
+using System.Text;
+using System.IO;
+using System.Drawing;
+using System.Diagnostics;
+using System.Threading.Tasks;
+using MPI;
+
+namespace ColorChanges
+{
+    class Program
+    {
+
+        static void Main(string[] args)
+        {    
+            
+            using (new MPI.Environment(ref args))
+            {   // Create new stopwatch.
+                Stopwatch stopwatch = new Stopwatch();
+                // Begin timing.
+                stopwatch.Start();
+                String path = @"D:\Google Drive\UiTM Jasin (CS230)\Sem 5\CSC580 (Parallel Processing)\lab7"; //Just change path here. 
+                //Dont forget to put original Spiderman.jpg in the same file
+               
+                
+
+                Intracommunicator comm = Communicator.world;//Starting MPI
+
+                
+                if (comm.Rank == 0)
+                {   
+                    //Process of Splitting Image
+                    Console.WriteLine("Split Proccess Started");
+                    Image image1;
+                    image1 = new Bitmap(Image.FromFile(Path.Combine(path, "Spiderman.jpg")));
+
+                    int rows = comm.Size;//No of Rows as per Desire
+                    int columns = 1;//No of columns as per Desire
+                    var imgarray = new Image[rows, columns];//Create Image Array of Size Rows X Colums
+                    var img = image1;//Get Image from anywhere, From File Or Using Dialogbox used previously
+                    int height = img.Height;
+                    int width = img.Width;//Get image Height & Width of Input Image
+                    int one_img_h = height / rows;
+                    int one_img_w = width / columns;//You need Rows x Columns, So get 1/rows Height, 1/columns width of original Image
+                    for (int i = 0; i < rows; i++)
+                    {
+                        for (int j = 0; j < columns; j++)
+                        {
+                            Console.WriteLine("Splitting image " + i);
+                            imgarray[i, j] = new Bitmap(one_img_w, one_img_h);//generating new bitmap
+                            var graphics = Graphics.FromImage(imgarray[i, j]);
+                            graphics.DrawImage(img, new Rectangle(0, 0, one_img_w, one_img_h), new Rectangle(j * one_img_w, i * one_img_h, one_img_w, one_img_h), GraphicsUnit.Pixel);//Generating Splitted Pieces of Image
+                            graphics.Dispose();
+                            Console.WriteLine("Image " + i + " Splitted");
+                        }
+                    }
+                    comm.Broadcast(ref imgarray, 0);
+                    Console.WriteLine("Split Proccess Ended");
+                   
+                    //Changing Color
+                    Console.WriteLine("Image " + comm.Rank + " Changing Color");
+                    Bitmap spodey = (Bitmap)imgarray[0, 0];
+
+                    for (int rowpix = 0; rowpix < spodey.Width; rowpix++)
+                    {
+                        for (int colpix = 0; colpix < spodey.Height; colpix++)
+                        {
+
+                            if ((spodey.GetPixel(rowpix, colpix).R - spodey.GetPixel(rowpix, colpix).G) > 40)
+
+                            {
+                                spodey.SetPixel(rowpix, colpix, Color.Black);
+
+                            }
+                        }
+                    }
+
+                    spodey.Save(Path.Combine(path, "Spidey1.jpg"), System.Drawing.Imaging.ImageFormat.Jpeg);
+                    Console.WriteLine("Spidey colored " + comm.Rank + " done");
+                    
+                    comm.Barrier();
+
+                }
+                else
+                {  
+                    
+                    Image[,] imgarray = new Image[10, 10];
+                    comm.Broadcast(ref imgarray, 0);
+                    Console.WriteLine("Image " + comm.Rank + " Changing Color");
+                    Bitmap spodey = (Bitmap)imgarray[comm.Rank, 0];
+
+                    for (int rowpix = 0; rowpix < spodey.Width; rowpix++)
+                    {
+                        for (int colpix = 0; colpix < spodey.Height; colpix++)
+                        {
+
+                            if ((spodey.GetPixel(rowpix, colpix).R - spodey.GetPixel(rowpix, colpix).G) > 40)
+
+                            {
+                                spodey.SetPixel(rowpix, colpix, Color.Black);
+
+                            }
+                        }
+                    }
+
+                    spodey.Save(Path.Combine(path, "Spidey"+(comm.Rank+1)+".jpg"), System.Drawing.Imaging.ImageFormat.Jpeg);
+                    Console.WriteLine("Spider colored " + comm.Rank + " done");
+                   
+                    comm.Barrier();
+
+                }
+
+              
+
+                if (comm.Rank == 0)
+                {
+                    
+                    Console.WriteLine("All color changed");
+                    Console.WriteLine("Process combining start...");
+                    //Process of Combining Image
+                    //Images that gone through color changes will be combine back 
+
+                    Bitmap temp = new Bitmap(5000, 5000);
+
+                    Graphics graph1 = Graphics.FromImage((Image)temp);
+                   
+                    int n = 0;
+                    for (int i = 1; i <= comm.Size; i++)
+                    {
+                        graph1.DrawImage((Image)Image.FromFile(Path.Combine(path,"Spidey" + i + ".jpg")), 0, n);
+                        n += (5000 / comm.Size);
+                    }
+                    graph1.Dispose();
+
+                    temp.Save((Path.Combine(path, "Changed.jpg")), System.Drawing.Imaging.ImageFormat.Jpeg);
+                    Console.WriteLine("Process combining ended...");
+                    // Stop timing.
+                    stopwatch.Stop();
+
+                    // Write result.
+                    Console.WriteLine("Time elapsed: {0}", stopwatch.Elapsed + " from rank " + comm.Rank);
+
+                }
+                
+            }
+           
+              
+
+            
+        }
+    }
+}
